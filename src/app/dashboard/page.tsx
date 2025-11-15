@@ -1,167 +1,148 @@
-"use client";
+import { Card, CardContent, Divider, Stack, Typography } from "@mui/material";
+import { revalidatePath } from "next/cache";
 
-import AssessmentIcon from "@mui/icons-material/Assessment";
-import InventoryIcon from "@mui/icons-material/Inventory2";
-import PeopleIcon from "@mui/icons-material/PeopleAlt";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import { Box, Chip, LinearProgress, Paper, Stack, Typography } from "@mui/material";
-import Grid from "@mui/material/Grid";
+import { RoleGuard } from "../../components/security/RoleGuard";
+import { MenuItemForm } from "./_components/MenuItemForm";
+import { MenuItemCard } from "./_components/MenuItemCard";
+import { createMenuItem, listKitchenTickets, listMenuItems, updateMenuItem } from "../../services/menu";
+import { KitchenTicketCard } from "../../components/tickets/KitchenTicketCard";
+import { updateTicketStatusAction } from "../_actions/tickets";
 
-const KPIS = [
-  {
-    title: "Today's Revenue",
-    value: "$8,420",
-    change: "+12% vs. yesterday",
-    icon: <TrendingUpIcon color="success" />,
-  },
-  {
-    title: "Open Orders",
-    value: "14",
-    change: "3 ready for pickup",
-    icon: <AssessmentIcon color="primary" />,
-  },
-  {
-    title: "Low Inventory Items",
-    value: "6",
-    change: "Needs attention",
-    icon: <InventoryIcon color="warning" />,
-  },
-  {
-    title: "Staff On Shift",
-    value: "9",
-    change: "2 breaks scheduled",
-    icon: <PeopleIcon color="secondary" />,
-  },
-];
+type ActionState = {
+  error: string | null;
+  success: boolean;
+};
 
-const highlights = [
-  {
-    label: "Reservations",
-    value: "24",
-    sublabel: "Tonight",
-  },
-  {
-    label: "Dining Room Capacity",
-    value: "68%",
-    sublabel: "Projected",
-  },
-  {
-    label: "Average Ticket",
-    value: "$36.20",
-    sublabel: "Last 7 days",
-  },
-];
+export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
+async function addMenuItem(_: ActionState, formData: FormData): Promise<ActionState> {
+  "use server";
+
+  const name = formData.get("name")?.toString().trim();
+  const description = formData.get("description")?.toString().trim();
+  const photoUrl = formData.get("photoUrl")?.toString().trim();
+  const priceRaw = formData.get("price")?.toString().trim();
+
+  if (!name || !description || !photoUrl || !priceRaw) {
+    return { error: "All fields are required.", success: false };
+  }
+
+  const price = Number(priceRaw);
+  if (Number.isNaN(price) || price < 0) {
+    return { error: "Price must be a positive number.", success: false };
+  }
+
+  try {
+    await createMenuItem({ name, description, photoUrl, price });
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+    revalidatePath("/kitchen");
+    return { error: null, success: true };
+  } catch (error) {
+    console.error("Failed to create menu item", error);
+    return { error: "Could not save the menu item. Please try again.", success: false };
+  }
+}
+
+async function editMenuItem(id: string, _: ActionState, formData: FormData): Promise<ActionState> {
+  "use server";
+
+  const name = formData.get("name")?.toString().trim();
+  const description = formData.get("description")?.toString().trim();
+  const photoUrl = formData.get("photoUrl")?.toString().trim();
+  const priceRaw = formData.get("price")?.toString().trim();
+
+  if (!name || !description || !photoUrl || !priceRaw) {
+    return { error: "All fields are required.", success: false };
+  }
+
+  const price = Number(priceRaw);
+  if (Number.isNaN(price) || price < 0) {
+    return { error: "Price must be a positive number.", success: false };
+  }
+
+  try {
+    await updateMenuItem({ id, name, description, photoUrl, price });
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+    revalidatePath("/kitchen");
+    return { error: null, success: true };
+  } catch (error) {
+    console.error("Failed to update menu item", error);
+    return { error: "Could not update the menu item.", success: false };
+  }
+}
+
+export default async function DashboardPage() {
+  const [menuItems, kitchenTickets] = await Promise.all([
+    listMenuItems(),
+    listKitchenTickets(),
+  ]);
+
   return (
-    <Stack spacing={4}>
-      <Stack spacing={1}>
-        <Typography component="h1" variant="h4" fontWeight={700}>
-          Manager Overview
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Live summary of guests, orders, inventory, and staff activity.
-        </Typography>
-      </Stack>
+    <RoleGuard allowedRoles={["manager"]}>
+      <Stack spacing={4}>
+        <Stack spacing={1}>
+          <Typography component="h1" variant="h4" fontWeight={700}>
+            Manager Overview
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Publish dishes to the guest menu and send them to the kitchen queue.
+          </Typography>
+        </Stack>
 
-      <Grid container spacing={3}>
-        {KPIS.map((item) => (
-          <Grid key={item.title} size={{ xs: 12, md: 6, lg: 3 }}>
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 3,
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-              }}
-            >
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="subtitle2" color="text.secondary">
-                  {item.title}
-                </Typography>
-                {item.icon}
-              </Stack>
-              <Typography variant="h4" fontWeight={700}>
-                {item.value}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {item.change}
-              </Typography>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
+        <MenuItemForm action={addMenuItem} />
 
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <Paper
-            variant="outlined"
-            sx={{ p: 3, display: "flex", flexDirection: "column", gap: 3 }}
-          >
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Box>
-                <Typography variant="h6" fontWeight={600}>
-                  Order Pipeline
-                </Typography>
+        <Divider />
+
+        <Stack spacing={2}>
+          <Typography variant="h6" fontWeight={600}>
+            Current Menu
+          </Typography>
+          {menuItems.length === 0 ? (
+            <Card variant="outlined">
+              <CardContent>
                 <Typography variant="body2" color="text.secondary">
-                  Kitchen throughput versus service goals.
+                  No dishes have been published yet.
                 </Typography>
-              </Box>
-              <Chip label="Live" color="success" size="small" />
-            </Stack>
-            <Stack spacing={2}>
-              <Box>
-                <Typography variant="subtitle2">Prep Station</Typography>
-                <LinearProgress value={72} variant="determinate" sx={{ mt: 1 }} />
-              </Box>
-              <Box>
-                <Typography variant="subtitle2">Grill Station</Typography>
-                <LinearProgress value={55} variant="determinate" sx={{ mt: 1 }} />
-              </Box>
-              <Box>
-                <Typography variant="subtitle2">Pastry Station</Typography>
-                <LinearProgress value={88} variant="determinate" sx={{ mt: 1 }} />
-              </Box>
-            </Stack>
-          </Paper>
-        </Grid>
+              </CardContent>
+            </Card>
+          ) : (
+            menuItems.map((item) => (
+              <MenuItemCard
+                key={item.id}
+                item={item}
+                action={editMenuItem.bind(null, item.id)}
+              />
+            ))
+          )}
+        </Stack>
 
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Paper
-            variant="outlined"
-            sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}
-          >
-            <Typography variant="h6" fontWeight={600}>
-              Tonight&apos;s Highlights
-            </Typography>
-            <Stack spacing={2}>
-              {highlights.map((item) => (
-                <Box
-                  key={item.label}
-                  sx={{
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: 2,
-                    p: 2,
-                  }}
-                >
-                  <Typography variant="subtitle2" color="text.secondary">
-                    {item.label}
-                  </Typography>
-                  <Typography variant="h5" fontWeight={600}>
-                    {item.value}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {item.sublabel}
-                  </Typography>
-                </Box>
-              ))}
-            </Stack>
-          </Paper>
-        </Grid>
-      </Grid>
-    </Stack>
+        <Divider />
+
+        <Stack spacing={2}>
+          <Typography variant="h6" fontWeight={600}>
+            Kitchen Tickets
+          </Typography>
+          {kitchenTickets.length === 0 ? (
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">
+                  No active tickets at the moment.
+                </Typography>
+              </CardContent>
+            </Card>
+          ) : (
+            kitchenTickets.map((ticket) => (
+              <KitchenTicketCard
+                key={ticket.id}
+                ticket={ticket}
+                action={updateTicketStatusAction}
+              />
+            ))
+          )}
+        </Stack>
+      </Stack>
+    </RoleGuard>
   );
 }

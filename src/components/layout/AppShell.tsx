@@ -7,14 +7,17 @@ import MenuIcon from "@mui/icons-material/Menu";
 import RestaurantMenuIcon from "@mui/icons-material/RestaurantMenu";
 import {
   AppBar,
+  Button,
   Box,
   Divider,
   Drawer,
   IconButton,
   List,
+  ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Stack,
   Toolbar,
   Typography,
   useMediaQuery,
@@ -24,11 +27,14 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 import { primaryNavigation } from "../../config/navigation";
+import { Role, useRole } from "../providers/RoleProvider";
+import { RoleSwitcher } from "./RoleSwitcher";
 
 type NavigationItem = {
   label: string;
   href: string;
   icon?: React.ReactNode;
+  roles?: Role[];
 };
 
 const ICON_MAP = {
@@ -41,6 +47,7 @@ const DEFAULT_LINKS: NavigationItem[] = primaryNavigation.map((item) => ({
   label: item.label,
   href: item.href,
   icon: item.icon ? ICON_MAP[item.icon] : undefined,
+  roles: item.roles,
 }));
 
 type AppShellProps = {
@@ -55,6 +62,19 @@ export function AppShell({ children, links = DEFAULT_LINKS }: AppShellProps) {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const pathname = usePathname();
+  const { role } = useRole();
+
+  const availableLinks = React.useMemo(() => {
+    return links.filter((item) => {
+      if (!item.roles || item.roles.length === 0) {
+        return true;
+      }
+
+      return item.roles.includes(role);
+    });
+  }, [links, role]);
+
+  const showNavigation = role !== "customer" && availableLinks.length > 0;
 
   const toggleDrawer = () => {
     setMobileOpen((prev) => !prev);
@@ -72,7 +92,7 @@ export function AppShell({ children, links = DEFAULT_LINKS }: AppShellProps) {
       </Box>
       <Divider />
       <List sx={{ flex: 1 }}>
-        {links.map((item) => {
+        {availableLinks.map((item) => {
           const selected = pathname === item.href;
 
           return (
@@ -106,7 +126,7 @@ export function AppShell({ children, links = DEFAULT_LINKS }: AppShellProps) {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <AppBar
         position="fixed"
         color="inherit"
@@ -118,53 +138,76 @@ export function AppShell({ children, links = DEFAULT_LINKS }: AppShellProps) {
           borderColor: "divider",
         }}
       >
-        <Toolbar>
-          {!isDesktop && (
-            <IconButton
-              color="inherit"
-              edge="start"
-              onClick={toggleDrawer}
-              sx={{ mr: 2 }}
-              aria-label="open navigation"
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
-          <Box sx={{ display: "flex", flexDirection: "column" }}>
-            <Typography variant="h6" component="div">
-              Ghuman Restaurant
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Unified guest, manager, and kitchen experiences
-            </Typography>
+        <Toolbar sx={{ gap: 2, justifyContent: "space-between", flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {showNavigation && (
+              <IconButton
+                color="inherit"
+                edge="start"
+                onClick={toggleDrawer}
+                aria-label="open navigation"
+                sx={{ display: { md: "none", xs: "inline-flex" } }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
+              <Typography variant="h6" component="div">
+                Ghuman Restaurant
+              </Typography>
+            </Box>
           </Box>
+
+          {isDesktop && showNavigation && (
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ flexGrow: 1 }}>
+              {availableLinks.map((item) => {
+                const selected = pathname === item.href;
+                return (
+                  <Button
+                    key={item.href}
+                    component={Link}
+                    href={item.href}
+                    color={selected ? "primary" : "inherit"}
+                    variant={selected ? "contained" : "text"}
+                    size="small"
+                  >
+                    {item.label}
+                  </Button>
+                );
+              })}
+            </Stack>
+          )}
+
+          {role !== "customer" && <RoleSwitcher />}
         </Toolbar>
       </AppBar>
 
-      <Box
-        component="nav"
-        sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
-        aria-label="primary navigation"
-      >
-        <Drawer
-          variant={isDesktop ? "permanent" : "temporary"}
-          open={isDesktop ? true : mobileOpen}
-          onClose={toggleDrawer}
-          ModalProps={{
-            keepMounted: true,
-          }}
-          sx={{
-            "& .MuiDrawer-paper": {
-              width: DRAWER_WIDTH,
-              boxSizing: "border-box",
-              borderRight: 1,
-              borderColor: "divider",
-            },
-          }}
+      {showNavigation && (
+        <Box
+          component="nav"
+          sx={{ display: { xs: "block", md: "none" } }}
+          aria-label="primary navigation"
         >
-          {drawerContent}
-        </Drawer>
-      </Box>
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={toggleDrawer}
+            ModalProps={{
+              keepMounted: true,
+            }}
+            sx={{
+              "& .MuiDrawer-paper": {
+                width: DRAWER_WIDTH,
+                boxSizing: "border-box",
+                borderRight: 1,
+                borderColor: "divider",
+              },
+            }}
+          >
+            {drawerContent}
+          </Drawer>
+        </Box>
+      )}
 
       <Box
         component="main"

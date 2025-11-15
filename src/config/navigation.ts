@@ -1,12 +1,26 @@
+import type { Role } from "../components/providers/RoleProvider";
+
 export type NavigationLink = {
   label: string;
   href: string;
   icon?: "customer" | "dashboard" | "kitchen";
-  roles?: Array<"guest" | "manager" | "kitchen">;
 };
 
-export const primaryNavigation: NavigationLink[] = [
-  { label: "Customer", href: "/", icon: "customer" },
-  { label: "Dashboard", href: "/dashboard", icon: "dashboard", roles: ["manager"] },
-  { label: "Kitchen", href: "/kitchen", icon: "kitchen", roles: ["kitchen", "manager"] },
-];
+const navigationByRole: Record<Role, NavigationLink[]> = {
+  customer: [],
+  manager: [
+    { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
+    { label: "Kitchen", href: "/kitchen", icon: "kitchen" },
+    { label: "Customer View", href: "/", icon: "customer" },
+  ],
+  kitchen: [
+    { label: "Kitchen Queue", href: "/kitchen", icon: "kitchen" },
+  ],
+};
+
+export function getNavigationForRole(role: Role): NavigationLink[] {
+  return navigationByRole[role] ?? [];
+}
+
+// Backwards compatibility for legacy imports.
+export const primaryNavigation: NavigationLink[] = getNavigationForRole("manager");

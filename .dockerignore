@@ -11,4 +11,9 @@ Dockerfile*
 docker-compose*.yml
 README.md
 certbot/conf/accounts
+certbot/conf/archive
+certbot/conf/live
+certbot/conf/logs
+certbot/conf/renewal
+certbot/conf/renewal-hooks
 **/Thumbs.db
