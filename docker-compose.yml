@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
   web:
+    image: ${WEB_IMAGE:-ghuman-restaurant:latest}
     build:
       context: .
       target: runner

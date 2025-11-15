@@ -124,7 +124,36 @@ curl -I https://your-domain.example
 
 ---
 
-## 6. Future Extensions
+## 6. GitHub Actions CI/CD
+
+The repository now includes `.github/workflows/ci-cd.yml`. When enabled, it automates:
+
+1. Running `npm ci`, `npm run lint`, and `npm run build` for every push/PR targeting `main`.
+2. Building the Docker image (using the `runner` stage) and pushing it to GitHub Container Registry at `ghcr.io/<owner>/<repo>`.
+3. Logging into your production server over SSH, pulling the freshly published image, and restarting the `web` service with `docker compose up -d web`.
+
+### One-time setup
+
+- Provision a clone of this repository on the server (e.g. `/opt/ghuman-restaurant`) and make sure Docker + Docker Compose V2 are installed.
+- Create a Personal Access Token (classic) with at least `read:packages` scope and save it for CI/CD as well as for the remote server to pull from GHCR.
+- Add these GitHub repository secrets:
+  - `SSH_HOST` – production server address.
+  - `SSH_PORT` – optional SSH port (defaults to `22`).
+  - `SSH_USERNAME` – Linux user with permission to run Docker.
+  - `SSH_PRIVATE_KEY` – private key that matches an authorized key on the server.
+  - `DEPLOY_PATH` – absolute path of the clone on the server (where `docker-compose.yml` lives).
+  - `REGISTRY_USERNAME` – GitHub username (or service account) that the server uses for `docker login`.
+  - `REGISTRY_TOKEN` – PAT with `read:packages` scope for the above user.
+
+The workflow already has permission to push images with `${{ secrets.GITHUB_TOKEN }}`; the extra registry credentials are only used on the server when it executes `docker compose pull web`.
+
+### Deploying
+
+- Push to `main`. After the workflow succeeds the server will be running the new tag `ghcr.io/<owner>/<repo>:<commit-sha>`.
+- You can override the image manually if needed: `WEB_IMAGE=ghcr.io/<owner>/<repo>:latest docker compose up -d web`.
+- If you change reverse-proxy files (e.g. `deploy/nginx/*`) remember to update the clone on the server (`git pull`) so Nginx sees the new config; the workflow only redeploys containers.
+
+## 7. Future Extensions
 
 - Add Neo4j and Redis services to `docker-compose.yml` when backend integration begins.
 - Push the `web` image to a private registry and reference it via the `image:` field for consistent deployments across environments.
