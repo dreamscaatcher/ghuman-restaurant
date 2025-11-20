@@ -3,12 +3,13 @@ import type { Role } from "../components/providers/RoleProvider";
 export type NavigationLink = {
   label: string;
   href: string;
-  icon?: "customer" | "dashboard" | "kitchen";
+  icon?: "customer" | "dashboard" | "kitchen" | "home";
 };
 
 const navigationByRole: Record<Role, NavigationLink[]> = {
   customer: [],
   manager: [
+    { label: "Manager Home", href: "/manager", icon: "home" },
     { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
     { label: "Kitchen", href: "/kitchen", icon: "kitchen" },
     { label: "Customer View", href: "/", icon: "customer" },

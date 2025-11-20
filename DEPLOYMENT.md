@@ -44,24 +44,26 @@ docker run --rm -p 3000:3000 --env-file .env.production ghuman-restaurant:latest
    - Replace every `ghuman-restaurant.local` with your real domain.
    - Confirm the `ssl_certificate` and `ssl_certificate_key` paths match the certificate names Certbot will create.
 
-2. Issue the first certificate once DNS resolves:
+2. Issue the first certificate once DNS resolves. To cover the app, manager, and kitchen subdomains in one SAN certificate:
 
-   ```bash
-   docker compose up -d nginx
-   docker compose run --rm \
-     -v "$(pwd)/certbot/conf:/etc/letsencrypt" \
-     -v "$(pwd)/certbot/www:/var/www/certbot" \
-     certbot/certbot certonly --webroot \
-     --webroot-path /var/www/certbot \
-     --email you@example.com \
-     --agree-tos \
-     --no-eff-email \
-     -d your-domain.example
-   ```
+```bash
+docker compose up -d nginx
+docker compose run --rm \
+  -v "$(pwd)/certbot/conf:/etc/letsencrypt" \
+  -v "$(pwd)/certbot/www:/var/www/certbot" \
+  certbot/certbot certonly --webroot \
+  --webroot-path /var/www/certbot \
+  --email you@example.com \
+  --agree-tos \
+  --no-eff-email \
+  -d your-domain.example \
+  -d manager.your-domain.example \
+  -d kitchen.your-domain.example
+```
 
 3. Validate the certificate files:
 
-   ```bash
+```bash
    docker run --rm \
      -v "$(pwd)/certbot/conf:/etc/letsencrypt" \
      certbot/certbot \
@@ -70,9 +72,11 @@ docker run --rm -p 3000:3000 --env-file .env.production ghuman-restaurant:latest
 
 4. Reload Nginx to serve HTTPS:
 
-   ```bash
-   docker compose restart nginx
-   ```
+```bash
+docker compose restart nginx
+```
+
+If you previously issued a certificate without `kitchen.your-domain.example`, rerun the `certonly` command above with all three `-d` flags to replace the certificate, then restart Nginx.
 
 The `certbot` service in `docker-compose.yml` handles automatic renewals every 12 hours by sharing the same certificate volume with Nginx.
 

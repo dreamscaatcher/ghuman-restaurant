@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import HomeIcon from "@mui/icons-material/Home";
 import KitchenIcon from "@mui/icons-material/Kitchen";
 import MenuIcon from "@mui/icons-material/Menu";
 import RestaurantMenuIcon from "@mui/icons-material/RestaurantMenu";
@@ -40,6 +41,7 @@ const ICON_MAP = {
   customer: <RestaurantMenuIcon fontSize="small" />,
   dashboard: <DashboardIcon fontSize="small" />,
   kitchen: <KitchenIcon fontSize="small" />,
+  home: <HomeIcon fontSize="small" />,
 } as const;
 
 function mapNavigationItems(items: NavigationLink[]): NavigationItem[] {
