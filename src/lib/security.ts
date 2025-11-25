@@ -1,5 +1,4 @@
-function getBaseDomain(url: URL): string {
-  const hostname = url.hostname;
+function getBaseDomain(hostname: string): string {
   const parts = hostname.split(".");
   if (hostname === "localhost" || hostname.endsWith(".localhost")) {
     return hostname;
@@ -13,9 +12,14 @@ function getBaseDomain(url: URL): string {
 export function requireSameOrigin(
   request: Request,
 ): { ok: true } | { ok: false; message: string } {
+  const forwardedHost =
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
   const target = new URL(request.url);
-  const targetOrigin = target.origin;
-  const targetBase = getBaseDomain(target);
+  const targetHost = forwardedHost || target.hostname;
+  const targetOrigin = `${forwardedProto}://${targetHost}`;
+  const targetBase = getBaseDomain(targetHost);
   const originHeader = request.headers.get("origin");
   const refererHeader = request.headers.get("referer");
 
@@ -24,8 +28,9 @@ export function requireSameOrigin(
     if (candidate.origin === targetOrigin) return true;
     return (
       candidate.hostname === target.hostname ||
+      candidate.hostname === targetHost ||
       candidate.hostname.endsWith(`.${targetBase}`) ||
-      getBaseDomain(candidate) === targetBase
+      getBaseDomain(candidate.hostname) === targetBase
     );
   };
 
