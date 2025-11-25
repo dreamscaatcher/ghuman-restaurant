@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { createCustomer } from "../../../../services/users";
+import { requireSameOrigin } from "../../../../lib/security";
 
 export async function POST(request: Request) {
+  const originCheck = requireSameOrigin(request);
+  if (!originCheck.ok) {
+    return NextResponse.json({ error: originCheck.message }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const name = body?.name?.toString().trim();

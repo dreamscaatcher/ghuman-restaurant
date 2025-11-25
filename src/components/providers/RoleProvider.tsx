@@ -2,13 +2,7 @@
 
 import * as React from "react";
 
-import {
-  CUSTOMER_ONLY_ROLES,
-  KITCHEN_ALLOWED_ROLES,
-  MANAGER_ALLOWED_ROLES,
-  Role,
-  isRole,
-} from "../../lib/roles";
+import { CUSTOMER_ONLY_ROLES, Role, isRole } from "../../lib/roles";
 
 type RoleContextValue = {
   role: Role;
@@ -45,20 +39,15 @@ export function RoleProvider({ children }: RoleProviderProps) {
         const data = await response.json();
         if (cancelled) return;
 
-        const hostname = window.location.hostname.toLowerCase();
-        const hostRoles = deriveRolesFromHost(hostname);
-        const hostDefault = hostRoles ? getDefaultRoleForHost(hostRoles) : null;
-
         const rolesFromSession = Array.isArray(data?.allowedRoles)
           ? data.allowedRoles.filter(isRole)
           : [];
 
-        const normalized = hostRoles
-          ? hostRoles
-          : rolesFromSession.length > 0
+        const normalized =
+          rolesFromSession.length > 0
             ? rolesFromSession
             : CUSTOMER_ONLY;
-        const defaultRole = hostDefault ?? normalized[0];
+        const defaultRole = normalized[0];
 
         setAllowedRoles(normalized);
         allowedRolesRef.current = normalized;
@@ -138,26 +127,6 @@ export function RoleProvider({ children }: RoleProviderProps) {
   );
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;
-}
-
-function deriveRolesFromHost(hostname: string): Role[] | null {
-  if (hostname.startsWith("manager.")) {
-    return MANAGER_ALLOWED_ROLES;
-  }
-  if (hostname.startsWith("kitchen.")) {
-    return KITCHEN_ALLOWED_ROLES;
-  }
-  return null;
-}
-
-function getDefaultRoleForHost(roles: Role[]): Role {
-  if (roles.includes("manager")) {
-    return "manager";
-  }
-  if (roles.includes("kitchen")) {
-    return "kitchen";
-  }
-  return roles[0];
 }
 
 export { ROLE_LABELS, ROLE_OPTIONS } from "../../lib/roles";

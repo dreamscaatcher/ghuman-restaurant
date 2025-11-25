@@ -5,6 +5,7 @@ import {
   KitchenTicketStatus,
   updateKitchenTicketStatus,
 } from "../../services/menu";
+import { getAllowedRolesForSession, getSessionRole } from "../../lib/auth";
 
 const VALID_STATUS_SET = new Set<KitchenTicketStatus>(KITCHEN_TICKET_STATUSES);
 
@@ -26,6 +27,12 @@ export async function updateTicketStatusAction(
   formData: FormData,
 ): Promise<TicketActionState> {
   "use server";
+
+  const role = await getSessionRole();
+  const allowed = getAllowedRolesForSession(role);
+  if (!allowed.includes("kitchen") && !allowed.includes("manager")) {
+    return { error: "Unauthorized.", success: false };
+  }
 
   const ticketId = formData.get("ticketId")?.toString().trim();
   const nextStatusRaw = formData.get("nextStatus");

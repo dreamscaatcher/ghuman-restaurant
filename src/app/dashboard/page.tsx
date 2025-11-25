@@ -8,6 +8,7 @@ import { MenuItemCard } from "./_components/MenuItemCard";
 import { createMenuItem, listKitchenTickets, listMenuItems, updateMenuItem } from "../../services/menu";
 import { KitchenTicketCard } from "../../components/tickets/KitchenTicketCard";
 import { updateTicketStatusAction } from "../_actions/tickets";
+import { getAllowedRolesForSession, getSessionRole } from "../../lib/auth";
 
 type ActionState = {
   error: string | null;
@@ -18,6 +19,12 @@ export const dynamic = "force-dynamic";
 
 async function addMenuItem(_: ActionState, formData: FormData): Promise<ActionState> {
   "use server";
+
+  const role = await getSessionRole();
+  const allowed = getAllowedRolesForSession(role);
+  if (!allowed.includes("manager")) {
+    return { error: "Unauthorized.", success: false };
+  }
 
   const name = formData.get("name")?.toString().trim();
   const description = formData.get("description")?.toString().trim();
@@ -47,6 +54,12 @@ async function addMenuItem(_: ActionState, formData: FormData): Promise<ActionSt
 
 async function editMenuItem(id: string, _: ActionState, formData: FormData): Promise<ActionState> {
   "use server";
+
+  const role = await getSessionRole();
+  const allowed = getAllowedRolesForSession(role);
+  if (!allowed.includes("manager")) {
+    return { error: "Unauthorized.", success: false };
+  }
 
   const name = formData.get("name")?.toString().trim();
   const description = formData.get("description")?.toString().trim();

@@ -2,10 +2,23 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { createOrderTickets } from "../../../services/menu";
+import { getAllowedRolesForSession, getSessionRole } from "../../../lib/auth";
+import { requireSameOrigin } from "../../../lib/security";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const originCheck = requireSameOrigin(request);
+  if (!originCheck.ok) {
+    return NextResponse.json({ error: originCheck.message }, { status: 403 });
+  }
+
+  const role = await getSessionRole();
+  const allowed = getAllowedRolesForSession(role);
+  if (!allowed.includes("customer")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const items = Array.isArray(body?.items)

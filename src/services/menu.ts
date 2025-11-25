@@ -258,7 +258,7 @@ export async function createOrderTickets(items: Array<{ id: string; quantity: nu
   const orderId = randomUUID();
   const itemsWithTicket = items.map((item) => ({
     ...item,
-    ticketId: `KT-${Math.floor(1000 + Math.random() * 9000)}`,
+    ticketId: randomUUID(),
   }));
 
   const result = await runQuery(

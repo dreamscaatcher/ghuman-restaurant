@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getSafeServerSession } from "../../../../lib/session";
 import { getCustomerById, updateCustomerProfile } from "../../../../services/users";
+import { requireSameOrigin } from "../../../../lib/security";
 
 export async function GET() {
   const session = await getSafeServerSession();
@@ -14,6 +15,11 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const originCheck = requireSameOrigin(request);
+  if (!originCheck.ok) {
+    return NextResponse.json({ error: originCheck.message }, { status: 403 });
+  }
+
   const session = await getSafeServerSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
